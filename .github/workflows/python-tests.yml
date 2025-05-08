@@ -1,0 +1,49 @@
+name: Exécuter Pytest pour la migration vers MongoDB
+
+#Le déclencheur
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Exécuter tous les tests Pytest avec MongoDB
+    runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:6
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      MONGO_URI: mongodb://localhost:27017
+      MONGO_DB: test_db
+      MONGO_COLLECTION: test_collection
+      CSV_PATH: data/healthcare_dataset.csv
+
+    steps:
+      - name: Récupérer le code source
+        uses: actions/checkout@v4
+
+      - name: Configurer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Installer les dépendances Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Exécuter tous les tests Pytest
+        run: |
+          pytest tests/
